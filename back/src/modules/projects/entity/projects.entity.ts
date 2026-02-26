@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Skill } from 'src/modules/skills/entity/skill.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable } from 'typeorm';
 
 @Entity()
 export class Project {
@@ -14,9 +15,6 @@ export class Project {
   @Column({ type: 'text' })
   description: string;
 
-  @Column('simple-array')
-  techStack: string[];
-
   @Column({ nullable: true })
   repoUrl: string;
 
@@ -25,4 +23,8 @@ export class Project {
 
   @Column({ default: 'coming_soon' })
   status: string;
+
+  @ManyToMany(() => Skill, (skill) => skill.projects)
+  @JoinTable()
+  skills: Skill[];
 }

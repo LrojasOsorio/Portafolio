@@ -39,4 +39,9 @@ export class CreateProjectDto {
   @IsOptional()
   @IsBoolean()
   featured?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  skills?: string[];
 }

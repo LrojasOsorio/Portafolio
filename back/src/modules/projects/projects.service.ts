@@ -1,23 +1,28 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Project } from './entity/projects.entity';
 import { CreateProjectDto } from './dto/createProject.dto';
 import { UpdateProjectDto } from './dto/updateProject.dto';
+import { Skill } from '../skills/entity/skill.entity';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectRepository(Project)
     private readonly projectRepo: Repository<Project>,
-  ) {}
+    @InjectRepository(Skill)
+    private readonly skillRepo: Repository<Skill>
+  ) { }
 
   findAll() {
-    return this.projectRepo.find();
+    return this.projectRepo.find({
+      relations: ['skills'],
+    });
   }
 
   async findOne(id: string): Promise<Project> {
-    const project = await this.projectRepo.findOne({ where: { id } });
+    const project = await this.projectRepo.findOne({ where: { id }, relations: ['skills'] });
 
     if (!project) {
       throw new NotFoundException(`Project with id ${id} not found`);
@@ -31,29 +36,61 @@ export class ProjectsService {
       title: 'Turnos App',
       slug: 'turnos-app',
       description: 'Sistema de gestión de turnos creado completamente por mí.',
-      techStack: ['React', 'NestJS', 'PostgreSQL'],
       repoUrl: 'https://github.com/tuusuario/turnos',
-      demoUrl: undefined,
       status: 'coming_soon',
     });
 
     return this.projectRepo.save(newProject);
   }
 
-  create(dto: CreateProjectDto) {
-    const project = this.projectRepo.create(dto);
-    return this.projectRepo.save(project);
+  async create(dto: CreateProjectDto): Promise<Project> {
+  const { skills, ...projectData } = dto;
+
+  const project = this.projectRepo.create(projectData);
+
+  project.slug = project.title
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '');
+
+  if (skills && skills.length > 0) {
+    const foundSkills = await this.skillRepo.find({
+      where: { id: In(skills) },
+    });
+
+    if (foundSkills.length !== skills.length) {
+      throw new BadRequestException('One or more skills not found');
+    }
+
+    project.skills = foundSkills;
   }
 
+  return this.projectRepo.save(project);
+}
+
   async update(id: string, dto: UpdateProjectDto): Promise<Project> {
-    const project = await this.projectRepo.findOne({ where: { id } });
+    const project = await this.projectRepo.findOne({
+      where: { id },
+      relations: ['skills'],
+    });
 
     if (!project) {
       throw new NotFoundException(`Project with id ${id} not found`);
     }
 
-    const updated = this.projectRepo.merge(project, dto);
-    return this.projectRepo.save(updated);
+    const { skills, ...projectData } = dto;
+
+    Object.assign(project, projectData);
+
+    if (skills) {
+      const foundSkills = await this.skillRepo.findBy({
+        id: In(skills),
+      });
+
+      project.skills = foundSkills;
+    }
+
+    return this.projectRepo.save(project);
   }
 
   async remove(id: string): Promise<{ deleted: true }> {

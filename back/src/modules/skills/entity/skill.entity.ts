@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Project } from 'src/modules/projects/entity/projects.entity';
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 export type SkillLevel = 'beginner' | 'intermediate' | 'advanced';
 export type SkillCategory = 'frontend' | 'backend' | 'database' | 'devops' | 'tools';
@@ -19,4 +20,7 @@ export class Skill {
 
   @Column({ type: 'int', default: 0 })
   order: number;
+
+  @ManyToMany(() => Project, (project) => project.skills)
+  projects: Project[];
 }

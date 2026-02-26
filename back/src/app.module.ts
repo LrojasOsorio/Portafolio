@@ -5,9 +5,12 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { SkillsModule } from './modules/skills/skill.module';
+import { Project } from './modules/projects/entity/projects.entity';
+import { Skill } from './modules/skills/entity/skill.entity';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([Project, Skill]),
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
